@@ -59,7 +59,7 @@ import cv2 print(cv2.__version__)
 
 ### Part 1: Coin Detection
 
-![coins.jpeg](https://github.com/meenal21/VR_Assignment_1/blob/main/Images/coins.jpeg)
+![coins.jpeg](https://github.com/meenal21/VR_Assignment_1/blob/main/Images/Coins/coins.jpeg)
 ```
 import cv2 as cv
 path = "F:\Downloads\IIITB CourseWork\Sem 2\VR\Assignment1\coins.jpeg"
@@ -289,7 +289,7 @@ for idx, img in enumerate(images):
     cv2.imwrite(".\Images\Panorama\\richkeypoints.png", img_with_kp)
 
 ```
-
+![RickKeyPoints](https://github.com/meenal21/VR_Assignment_1/blob/main/Panorama/richkeypoints.png)
 - `sift.detectAndCompute()` extracts **keypoints** and **descriptors** for each image.
 - The **keypoints are drawn** on the images and saved as `richkeypoints.png` for visualization.
 - Prints the **number of detected keypoints** for debugging.
@@ -305,15 +305,6 @@ Now once this is done, we will match the features and since we have to do this t
 ```
 imageStitcher = cv2.Stitcher_create()
 error, stitched_img = imageStitcher.stitch(images)
-```
-
-We collect the good matches based on the threshold of 0.7 - Lowe's Ratio Test:
-```
-good_matches = [] 
-
-for m, n in matches: 
-	if m.distance < 0.75 * n.distance: 
-		good_matches.append(m)
 ```
 
 #### Processing the Stitched Image
@@ -361,5 +352,5 @@ cv2.imwrite(".\Panorama\\stitchedOutputProcessed.png", stitched_img)
 cv2.imshow("Stitched_Img", stitched_img)
 cv2.waitKey(0)
 ```
-
+![Stitched with richkeypoints](https://github.com/meenal21/VR_Assignment_1/blob/main/Panorama/Stitched%20With%20KP.png)
 ![Stitched Image](https://github.com/meenal21/VR_Assignment_1/blob/main/Panorama/stitchedOutput.png)
