@@ -20,7 +20,7 @@ for idx, img in enumerate(images):
     kp, des = sift.detectAndCompute(img, None)
     print(f"Image {idx+1} ({image_paths[idx]}): {len(kp)} keypoints detected.")
     img_with_kp = cv2.drawKeypoints(img, kp, None, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-    cv2.imwrite(".\Images\Panorama\\richkeypoints.png", img_with_kp)
+    cv2.imwrite(".\Panorama\\richkeypoints.png", img_with_kp)
     
 
 # Create a Stitcher object and stitch the images.
@@ -61,7 +61,7 @@ if not error:
     x, y, w, h = cv2.boundingRect(areaOI)
     stitched_img = stitched_img[y:y + h, x:x + w]
 
-    cv2.imwrite(".\Panorama\\stitchedOutputProcessed.png", stitched_img)
+    cv2.imwrite(".\Panorama\\stitchedOutputProcessed.png", stitched_img)    
     cv2.imshow("Stitched_Img",stitched_img)     
     cv2.waitKey(0)
 
@@ -70,9 +70,10 @@ if not error:
     print(f"Stitched Processed Image: {len(kp_final)} keypoints detected.")
     stitched_with_kp = cv2.drawKeypoints(stitched_img, kp_final, None, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
     cv2.imwrite(".\Panorama\\Stitched With KP.png", stitched_with_kp)
+    print("Panorama is stitched")
     cv2.imshow("stitchedOutputProcessed_w.png",stitched_with_kp)
     cv2.waitKey(0)
-
+    
 else:
     print("Images could not be stitched!")
     print("Likely not enough keypoints being detected!")
