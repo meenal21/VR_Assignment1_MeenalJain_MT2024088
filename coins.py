@@ -9,6 +9,8 @@ path =  "F:\Downloads\IIITB CourseWork\Sem 2\VR\Assignment1\coins_1.jpeg"
 path = ".\Images\coins.jpeg"
 segment_path = ".\Segmented Coins"
 
+os.makedirs(segment_path, exist_ok=True)
+
 #Read the image and save in img
 img = cv.imread(path)
 
@@ -70,7 +72,7 @@ for cnt in contours:
 		x2, y2 = min(half.shape[1], center[0] + radius), min(half.shape[0], center[1] + radius) 
 		# Crop the coin 
 		coin = half[y1:y2, x1:x2]
-		os.makedirs(segment_path, exist_ok=True)
+		
 		filename = os.path.join(segment_path,f"coin_{coin_count}.png")
 		cv.imwrite(filename, coin) 
 		coin_count += 1

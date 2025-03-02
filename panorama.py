@@ -1,56 +1,78 @@
-import cv2 as cv
 import numpy as np
+import cv2
 import os
+import glob
+import imutils
 
-def stitch_images(img1, img2):
-    """Finds keypoints, matches them, computes homography, and stitches images."""
-    sift = cv.SIFT_create()
-    key1, desc1 = sift.detectAndCompute(img1, None)
-    key2, desc2 = sift.detectAndCompute(img2, None)
+# Get all images from the specified folder.
+image_paths = glob.glob('.\Images\Panorama\\*.jpg')
+images = []
 
-    matcher = cv.BFMatcher()
-    matches = matcher.knnMatch(desc1, desc2, k=2)
+# Read and show each image.
+for image in image_paths:
+    img = cv2.imread(image)
+    images.append(img)
 
-    good_matches = [m for m, n in matches if m.distance < 0.75 * n.distance]
+sift = cv2.SIFT_create()
 
-    print(f"Found {len(good_matches)} good matches.")  # Debugging
+# Detect and display keypoints on each input image.
+for idx, img in enumerate(images):
+    kp, des = sift.detectAndCompute(img, None)
+    print(f"Image {idx+1} ({image_paths[idx]}): {len(kp)} keypoints detected.")
+    img_with_kp = cv2.drawKeypoints(img, kp, None, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+    cv2.imwrite(".\Images\Panorama\\richkeypoints.png", img_with_kp)
+    
 
-    if len(good_matches) < 10:
-        print("Not enough matches to compute homography!")
-        return None
+# Create a Stitcher object and stitch the images.
+imageStitcher = cv2.Stitcher_create()
+error, stitched_img = imageStitcher.stitch(images)
 
-    src_pts = np.float32([key1[m.queryIdx].pt for m in good_matches]).reshape(-1, 1, 2)
-    dst_pts = np.float32([key2[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2)
+if not error:
+    # Save and display the raw stitched image.
+    cv2.imwrite(".\Panorama\\stitchedOutput.png", stitched_img)
 
-    H, mask = cv.findHomography(dst_pts, src_pts, cv.RANSAC, 5.0)
+    # Process the stitched image.
+    stitched_img = cv2.copyMakeBorder(stitched_img, 10, 10, 10, 10, cv2.BORDER_CONSTANT, (0, 0, 0))
+    gray = cv2.cvtColor(stitched_img, cv2.COLOR_BGR2GRAY)
+    thresh_img = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY)[1]
+    cv2.imwrite(".\Panorama\\thresh_image.png", stitched_img)
 
-    if H is None:
-        print("Homography computation failed!")
-        return None
+    contours = cv2.findContours(thresh_img.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours = imutils.grab_contours(contours)
+    areaOI = max(contours, key=cv2.contourArea)
 
-    # Warp img2 onto img1's plane
-    height, width = img1.shape[:2]
-    result = cv.warpPerspective(img2, H, (width * 2, height))
-    result[0:height, 0:width] = img1  # Overlay img1
+    mask = np.zeros(thresh_img.shape, dtype="uint8")
+    x, y, w, h = cv2.boundingRect(areaOI)
+    cv2.rectangle(mask, (x, y), (x + w, y + h), 255, -1)
 
-    return result
+    minRectangle = mask.copy()
+    sub = mask.copy()
 
-# Load images
-image_paths = [".\Images\Panorama\\first.jpg", ".\Images\Panorama\\second.jpg", ".\Images\Panorama\\third.jpg"]
-images = [cv.imread(path) for path in image_paths]
+    # Erode the mask until we get the minimum rectangle.
+    while cv2.countNonZero(sub) > 0:
+        minRectangle = cv2.erode(minRectangle, None)
+        sub = cv2.subtract(minRectangle, thresh_img)
 
-# Stitch images manually, checking for issues at each step
-stitched = stitch_images(images[1], images[0])  # Middle + Right
-if stitched is not None:
-    stitched = stitch_images(images[2], stitched)  # Left + (Middle + Right)
+    contours = cv2.findContours(minRectangle.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours = imutils.grab_contours(contours)
+    areaOI = max(contours, key=cv2.contourArea)
+    cv2.imwrite(".\Panorama\\minRectangle.png", minRectangle)
 
-# Save result
-if stitched is not None:
-    output_dir = ".\Panorama"
-    os.makedirs(output_dir, exist_ok=True)
-    output_path = os.path.join(output_dir, "fixed_panorama.png")
-    cv.imwrite(output_path, stitched)
-    print("Fixed Panorama saved at:", output_path)
+    x, y, w, h = cv2.boundingRect(areaOI)
+    stitched_img = stitched_img[y:y + h, x:x + w]
+
+    cv2.imwrite(".\Panorama\\stitchedOutputProcessed.png", stitched_img)
+    cv2.imshow("Stitched_Img",stitched_img)     
+    cv2.waitKey(0)
+
+    # Detects and displays keypoints on the processed stitched image.
+    kp_final, des_final = sift.detectAndCompute(stitched_img, None)
+    print(f"Stitched Processed Image: {len(kp_final)} keypoints detected.")
+    stitched_with_kp = cv2.drawKeypoints(stitched_img, kp_final, None, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+    cv2.imwrite(".\Panorama\\Stitched With KP.png", stitched_with_kp)
+    cv2.imshow("stitchedOutputProcessed_w.png",stitched_with_kp)
+    cv2.waitKey(0)
+
 else:
-    print("Panorama stitching failed!")
-
+    print("Images could not be stitched!")
+    print("Likely not enough keypoints being detected!")

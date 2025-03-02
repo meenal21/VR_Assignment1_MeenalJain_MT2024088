@@ -1,4 +1,5 @@
-# Visual Recognition - Assignment 1
+
+# VR Assignment 1
 
 **Part 1 : Coin Detection**
 a. Detect all coins in the image (2 Marks)
@@ -250,17 +251,15 @@ The visualisation of few of the coins is
 since SIFT works with only 2 images at a time - so we need to do this activity twice 
 
 #### Import the Image
+
+- The script scans a folder (`.\Images\Panorama\`) to **fetch all images** with a `.jpg` extension.
+- The images are then **read using OpenCV** and stored in a list for further processing.
 ```
-import cv2 as cv
-path1 = ".\Images\\first.jpg"
-
-path2 = ".\Images\\second.jpg"
-
-path3 = ".\Images\\third.jpg"
-
-img1 = cv.imread(path1)
-img2 = cv.imread(path2)
-img3 = cv.imread(path3)
+image_paths = glob.glob('.\Images\Panorama\\*.jpg')
+images = []
+for image in image_paths:
+    img = cv2.imread(image)
+    images.append(img)
 ```
 
 #### Convert from BGR to GrayScale
@@ -276,26 +275,30 @@ gray3 = cv.cvtColor(img3, cv.COLOR_BGR2GRAY)
 
 Initialise and detect keypoints and compute descriptors
 ```
-sift = cv.SIFT_create()
+sift = cv2.SIFT_create()
+for idx, img in enumerate(images):
+    kp, des = sift.detectAndCompute(img, None)
+    print(f"Image {idx+1} ({image_paths[idx]}): {len(kp)} keypoints detected.")
+    img_with_kp = cv2.drawKeypoints(img, kp, None, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+    cv2.imwrite(".\Images\Panorama\\richkeypoints.png", img_with_kp)
 
-key1, desc1 = sift.detectAndCompute(gray1, None)
-key2, desc2 = sift.detectAndCompute(gray2, None)
-key3, desc3 = sift.detectAndCompute(gray3, None)
 ```
 
+- `sift.detectAndCompute()` extracts **keypoints** and **descriptors** for each image.
+- The **keypoints are drawn** on the images and saved as `richkeypoints.png` for visualization.
+- Prints the **number of detected keypoints** for debugging.
 
 Now once this is done, we will match the features and since we have to do this twice, we will create a function to do so:
 
-#### Match the Features
+#### Stitching the Images Together
 
-We use FLANN - as it helps find the best matches between the key points from the key point -
+- `Stitcher_create()` initializes OpenCV's built-in **image stitching algorithm**.
+- `stitch(images)` aligns and **blends images seamlessly**.
+- If successful, it returns the **stitched panorama** in `stitched_img`
+
 ```
-FLANN_INDEX_KDTREE = 1
-index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5) 
-search_params = dict(checks=50)
-
-flann = cv.FlannBasedMatcher(index_params, search_params) 
-matches = flann.knnMatch(desc1, desc2, k=2)
+imageStitcher = cv2.Stitcher_create()
+error, stitched_img = imageStitcher.stitch(images)
 ```
 
 We collect the good matches based on the threshold of 0.7 - Lowe's Ratio Test:
@@ -307,78 +310,48 @@ for m, n in matches:
 		good_matches.append(m)
 ```
 
-#### Extracting Matched Keypoints and computing Homography:
-```
-import numpy as np
-src_pts = np.float32([key1[m.queryIdx].pt for m in good_matches]).reshape(-1, 1, 2)
-dst_pts = np.float32([key2[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2)
-```
+#### Processing the Stitched Image
 
-Calculate the transformation matrix (Homography) between the images:
-```
-H,_ = cv.findHomography(src_pts, dst_pts, cv.RANSAC, 5.0)
-```
-
-H - 3x3 matrix which aligns image1 onto image2
-**RANSAC** - Random Sample Consensus removes outliers to improve accuracy
-5.0 - maximum projection error allowed
-
-#### Warp image1 onto image2 - Stitching the images
-```
-height, width, _ = img2.shape
-warped_img1 = cv.warpPerspective(img1, H, (width * 2, height))
-
-panaroma_path = ".\Panaroma"
-os.makedirs(panaroma_path, exist_ok=True)
-filename = os.path.join(panaroma_path,f"panaroma.png")
-cv.imwrite(filename, warped_img1)
-```
-
+- **Thresholding isolates the foreground**, helping in **detecting the stitched region**.
+- `findContours()` identifies the **main stitched area**.
+- The largest **bounding box** is extracted for further processing.
 
 ```
-def match_and_warp(img1, img2, keypoints1, descriptors1, keypoints2, descriptors2):
-    # Use FLANN-based matcher
-    FLANN_INDEX_KDTREE = 1
-    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
-    search_params = dict(checks=50)
-    
-    flann = cv.FlannBasedMatcher(index_params, search_params)
-    matches = flann.knnMatch(descriptors1, descriptors2, k=2)
-    # Apply Lowe's ratio test
-    
-    
-    good_matches = []
-    for m, n in matches:
-        if m.distance < 0.75 * n.distance:
-            good_matches.append(m)
-        
-    
-# Stitch first two images
-stitched12 = match_and_warp(img2, img3, key2, desc2, key3, desc3)
+stitched_img = cv2.copyMakeBorder(stitched_img, 10, 10, 10, 10, cv2.BORDER_CONSTANT, (0, 0, 0))
+gray = cv2.cvtColor(stitched_img, cv2.COLOR_BGR2GRAY)
+thresh_img = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY)[1]
+cv2.imwrite(".\Panorama\\thresh_image.png", stitched_img)
+
+contours = cv2.findContours(thresh_img.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+contours = imutils.grab_contours(contours)
+areaOI = max(contours, key=cv2.contourArea)
 ```
 
-```
-panorama_path = ".\Panorama"
-os.makedirs(panorama_path, exist_ok=True)
-filename = os.path.join(panorama_path,f"first_pan.png")
-cv.imwrite(filename, stitched12)
-```
+#### Refine the Cropped Panorama
+
+The stitched image is **eroded** to get the **smallest rectangular region** containing useful data.
 
 ```
-# Convert stitched12 to grayscale for next match
-gray12 = cv.cvtColor(stitched12, cv.COLOR_BGR2GRAY)
+mask = np.zeros(thresh_img.shape, dtype="uint8")
+x, y, w, h = cv2.boundingRect(areaOI)
+cv2.rectangle(mask, (x, y), (x + w, y + h), 255, -1)
 
-# Detect keypoints in stitched12 and image3
-keypoints12, descriptors12 = sift.detectAndCompute(gray12, None)
+minRectangle = mask.copy()
+sub = mask.copy()
 
-# Stitch the third image
-final_panorama = match_and_warp(img1, stitched12, key1, desc1, keypoints12, descriptors12)
-
+while cv2.countNonZero(sub) > 0:
+    minRectangle = cv2.erode(minRectangle, None)
+    sub = cv2.subtract(minRectangle, thresh_img)
 ```
 
+This ensures that only the **useful part** of the panorama is kept.
+
+####  Final Cropping and Saving
+
 ```
-panorama_path = ".\Panorama"
-os.makedirs(panorama_path, exist_ok=True)
-filename = os.path.join(panorama_path,f"panorama.png")
-cv.imwrite(filename, final_panorama)
+x, y, w, h = cv2.boundingRect(areaOI)
+stitched_img = stitched_img[y:y + h, x:x + w]
+cv2.imwrite(".\Panorama\\stitchedOutputProcessed.png", stitched_img)
+cv2.imshow("Stitched_Img", stitched_img)
+cv2.waitKey(0)
 ```
