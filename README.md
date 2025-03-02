@@ -1,3 +1,4 @@
+# Visual Recognition - Assignment 1
 
 **Part 1 : Coin Detection**
 a. Detect all coins in the image (2 Marks)
