@@ -59,7 +59,7 @@ import cv2 print(cv2.__version__)
 
 ### Part 1: Coin Detection
 
-![[coins.jpeg]]
+![coins.jpeg](https://github.com/meenal21/VR_Assignment_1/blob/main/Images/coins.jpeg)
 ```
 import cv2 as cv
 path = "F:\Downloads\IIITB CourseWork\Sem 2\VR\Assignment1\coins.jpeg"
