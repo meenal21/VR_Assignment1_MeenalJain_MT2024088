@@ -243,10 +243,16 @@ Now I want to draw the contours in a circular fashion -
 
 The visualisation of few of the coins is 
 
-![[coin_1.png]]    ![[coin_5.png]]   
+![coin_1.png](https://github.com/meenal21/VR_Assignment_1/blob/main/Segmented%20Coins/coin_2.png)    ![coin_4.png](https://github.com/meenal21/VR_Assignment_1/blob/main/Segmented%20Coins/coin_4.png)   
 
 
 ## Part 2: Image Stitching :
+
+![Image1](https://github.com/meenal21/VR_Assignment_1/blob/main/Images/Panorama/first.jpg)
+
+![Image2](https://github.com/meenal21/VR_Assignment_1/blob/main/Images/Panorama/second.jpg)
+
+![Image3](https://github.com/meenal21/VR_Assignment_1/blob/main/Images/Panorama/third.jpg)
 
 since SIFT works with only 2 images at a time - so we need to do this activity twice 
 
@@ -355,3 +361,5 @@ cv2.imwrite(".\Panorama\\stitchedOutputProcessed.png", stitched_img)
 cv2.imshow("Stitched_Img", stitched_img)
 cv2.waitKey(0)
 ```
+
+![Stitched Image](https://github.com/meenal21/VR_Assignment_1/blob/main/Panorama/stitchedOutput.png)
